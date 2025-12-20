@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Performance Predictor</title>
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+<div class="galaxy"></div>
+<div class="clouds"></div>
+
+
+<div class="page">
+    <div class="card">
+        <div class="segmented-toggle">
+    <button class="segment active" id="dayBtn" type="button">Day</button>
+    <button class="segment" id="nightBtn" type="button">Night</button>
+</div>
+
+
+        <h1>Student Performance Predictor</h1>
+        <p class="subtitle">
+            Track and visualize your academic performance over time.
+        </p>
+
+        <!-- ================= FORM ================= -->
+        <form id="predictForm">
+
+
+            <div class="form-grid">
+
+                <div class="field">
+                    <label>Hours Studied</label>
+                    <input type="number" step="0.1" name="hours" required>
+                </div>
+
+                <div class="field">
+                    <label>Previous Scores</label>
+                    <input type="number" step="0.1" name="previous" required>
+                </div>
+
+                <div class="field">
+                    <label>Sleep Hours</label>
+                    <input type="number" step="0.1" name="sleep" required>
+                </div>
+
+                <div class="field">
+                    <label>Sample Question Papers Practiced</label>
+                    <input type="number" name="papers" required>
+                </div>
+
+                <div class="field">
+                    <label>Extracurricular Activities</label>
+                    <select name="extra" required>
+                        <option value="">Select</option>
+                        <option value="1">Yes</option>
+                        <option value="0">No</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <button type="submit">Predict Performance</button>
+        </form>
+        <!-- ======================================== -->
+
+        <!-- ============ CURRENT RESULT ============ -->
+        {% if prediction %}
+<div class="result">
+    <span class="label">Predicted Performance Index</span>
+    <span class="value" id="performanceValue"
+      data-value="{{ prediction }}">
+    0
+</span>
+
+</div>
+{% elif scores %}
+<div class="result">
+    <span class="label">Predicted Performance Index</span>
+    <span class="value">{{ scores[-1] | round(2) }}</span>
+</div>
+{% endif %}
+
+        <!-- ======================================== -->
+
+        <!-- ========== WEEKLY PROGRESS CHART ========= -->
+        {% if scores and dates %}
+<canvas id="progressChart"></canvas>
+
+<script>
+const labels = {{ dates | tojson }};
+const dataPoints = {{ scores | tojson }};
+
+const ctx = document.getElementById("progressChart").getContext("2d");
+
+new Chart(ctx, {
+    type: "line",
+    data: {
+        labels: labels,
+        datasets: [{
+            label: "Performance Over Time",
+            data: dataPoints,
+            borderColor: "#2563eb",
+            backgroundColor: "rgba(37,99,235,0.1)",
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+
+
+
+        <!-- ======================================== -->
+
+        <p class="disclaimer">
+            This tool is intended for educational purposes only.
+        </p>
+
+    </div>
+</div>
+
+<script>
+document.querySelector("form").addEventListener("submit", () => {
+    const currentTheme = document.body.classList.contains("night") ? "night" : "day";
+    localStorage.setItem("theme", currentTheme);
+});
+</script>
+
+
+<script>
+    let isInitialLoad = true;
+
+const dayBtn = document.getElementById("dayBtn");
+const nightBtn = document.getElementById("nightBtn");
+const body = document.body;
+const card = document.querySelector(".card");
+
+
+function applyTheme(theme) {
+    if (body.classList.contains(theme) && !isInitialLoad) return;
+    // start horizontal flip
+
+    setTimeout(() => {
+        // apply theme
+        body.classList.remove("day", "night");
+        body.classList.add(theme);
+        localStorage.setItem("theme", theme);
+
+        // toggle active button
+        if (theme === "day") {
+            dayBtn.classList.add("active");
+            nightBtn.classList.remove("active");
+        } else {
+            nightBtn.classList.add("active");
+            dayBtn.classList.remove("active");
+        }
+
+        // end flip
+        card.classList.remove("flip");
+        isInitialLoad = false;
+
+
+    }, 300);
+}
+
+// auto theme after 9 PM
+const savedTheme = localStorage.getItem("theme") || "day";
+document.body.classList.add(savedTheme);
+
+if (savedTheme === "day") {
+    dayBtn.classList.add("active");
+    nightBtn.classList.remove("active");
+} else {
+    nightBtn.classList.add("active");
+    dayBtn.classList.remove("active");
+}
+
+// manual toggle
+dayBtn.addEventListener("click", () => applyTheme("day"));
+nightBtn.addEventListener("click", () => applyTheme("night"));
+</script>
+
+
+
+<script>
+const valueEl = document.getElementById("performanceValue");
+
+if (valueEl) {
+    const target = parseFloat(valueEl.dataset.value);
+    let current = 0;
+    const duration = 800; // ms (subtle, not flashy)
+    const steps = 60;
+    const increment = target / steps;
+    const interval = duration / steps;
+
+    const counter = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+            valueEl.textContent = target.toFixed(2);
+            clearInterval(counter);
+        } else {
+            valueEl.textContent = current.toFixed(2);
+        }
+    }, interval);
+}
+</script>
+
+<script>
+function createShootingStar() {
+    if (!document.body.classList.contains("night")) return;
+
+    const star = document.createElement("div");
+    star.className = "shooting-star";
+    star.style.top = Math.random() * 40 + 10 + "%";
+
+    document.body.appendChild(star);
+
+    setTimeout(() => {
+        star.remove();
+    }, 1500);
+}
+
+// One shooting star every 45–90 seconds
+setInterval(createShootingStar, Math.random() * 45000 + 45000);
+</script>
+
+<script>
+document.getElementById("predictForm").addEventListener("submit", function (e) {
+    e.preventDefault(); // 🚫 STOP PAGE RELOAD
+
+    const formData = new FormData(this);
+
+    fetch("/", {
+        method: "POST",
+        body: formData
+    })
+    .then(() => {
+        // update page content WITHOUT reload
+        window.location.href = window.location.pathname + window.location.search;
+    });
+});
+</script>
+
+</body>
+</html>
