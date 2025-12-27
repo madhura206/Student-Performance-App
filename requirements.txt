@@ -1,6 +1,6 @@
 flask
-numpy
-pandas
-scikit-learn
+gunicorn
 pymongo
-dnspython
+gdown
+numpy
+scikit-learn
