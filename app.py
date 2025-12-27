@@ -61,7 +61,7 @@ def home():
 
         today = date.today().strftime("%Y-%m-%d")
 
-        if collection:
+        if collection is not None:
             collection.update_one(
                 {"date": today},
                 {"$set": {"performance": prediction}},
@@ -73,7 +73,7 @@ def home():
     # ---------- GET ----------
     daily_map = {}
 
-    if collection:
+    if collection is not None:
         records = list(collection.find().sort("date", 1))
         for r in records:
             daily_map[r["date"]] = r["performance"]
