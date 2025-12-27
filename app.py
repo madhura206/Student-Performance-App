@@ -3,9 +3,12 @@ import pickle
 from datetime import date
 from flask import Flask, render_template, request, redirect, url_for
 from pymongo import MongoClient
+import gdown
 
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# --------------------
+# Paths
+# --------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(
     __name__,
@@ -13,29 +16,39 @@ app = Flask(
     static_folder=os.path.join(BASE_DIR, "static")
 )
 
-
+# --------------------
+# Model handling (Cloud-safe)
+# --------------------
 MODEL_PATH = os.path.join(BASE_DIR, "model.pkl")
+
+if not os.path.exists(MODEL_PATH):
+    print("Downloading model...")
+    url = "https://drive.google.com/uc?id=YOUR_FILE_ID"
+    gdown.download(url, MODEL_PATH, quiet=False)
 
 model = pickle.load(open(MODEL_PATH, "rb"))
 
+# --------------------
+# MongoDB (Safe init)
+# --------------------
 MONGO_URI = os.environ.get("MONGO_URI")
 
-client = MongoClient(
-    MONGO_URI,
-    serverSelectionTimeoutMS=3000  # ⏱ prevents silent hang
-)
+collection = None
+if MONGO_URI:
+    try:
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
+        client.admin.command("ping")
+        db = client["student_performance_db"]
+        collection = db["weekly_performance"]
+        print("MongoDB connected")
+    except Exception as e:
+        print("MongoDB connection failed:", e)
 
-db = client["student_performance_db"]
-collection = db["weekly_performance"]
-
-# 🔍 force connection check
-client.admin.command("ping")
-print("MongoDB connected successfully")
-
-
+# --------------------
+# Routes
+# --------------------
 @app.route("/", methods=["GET", "POST"])
 def home():
-    # ---------- POST ----------
     if request.method == "POST":
         hours = float(request.form["hours"])
         previous = float(request.form["previous"])
@@ -48,34 +61,30 @@ def home():
 
         today = date.today().strftime("%Y-%m-%d")
 
-        # ✅ upsert today's value
-        collection.update_one(
-            {"date": today},
-            {"$set": {"performance": prediction}},
-            upsert=True
-        )
+        if collection:
+            collection.update_one(
+                {"date": today},
+                {"$set": {"performance": prediction}},
+                upsert=True
+            )
 
         return redirect(url_for("home", latest=prediction))
 
     # ---------- GET ----------
-    records = list(collection.find().sort("date", 1))
-
     daily_map = {}
-    for r in records:
-        daily_map[r["date"]] = r["performance"]
 
-    today = date.today().strftime("%Y-%m-%d")
+    if collection:
+        records = list(collection.find().sort("date", 1))
+        for r in records:
+            daily_map[r["date"]] = r["performance"]
 
-    # ✅ ONE source of truth
     prediction = request.args.get("latest", type=float)
 
     if prediction is None and daily_map:
-        prediction = daily_map[list(daily_map.keys())[-1]]
+        prediction = list(daily_map.values())[-1]
 
-    # ✅ build chart AFTER final value is known
-    sorted_items = sorted(daily_map.items(), key=lambda x: x[0])
-    dates = [d for d, _ in sorted_items]
-    scores = [s for _, s in sorted_items]
+    dates = list(daily_map.keys())
+    scores = list(daily_map.values())
 
     return render_template(
         "index.html",
@@ -83,6 +92,9 @@ def home():
         dates=dates,
         scores=scores
     )
-if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
 
+# --------------------
+# Local run only
+# --------------------
+if __name__ == "__main__":
+    app.run()
