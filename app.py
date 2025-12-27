@@ -23,7 +23,7 @@ MODEL_PATH = os.path.join(BASE_DIR, "model.pkl")
 
 if not os.path.exists(MODEL_PATH):
     print("Downloading model...")
-    url = "https://drive.google.com/uc?id=YOUR_FILE_ID"
+    url = "https://drive.google.com/uc?id=12jhlGDWxbmjl8MK1UsHYYVhJmBV1tmhV"
     gdown.download(url, MODEL_PATH, quiet=False)
 
 model = pickle.load(open(MODEL_PATH, "rb"))
