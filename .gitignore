@@ -1,1 +1,44 @@
+# --------------------
+# Python
+# --------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+
+# --------------------
+# ML Models & Data
+# --------------------
+*.pkl
+*.joblib
+*.h5
+*.csv
+*.zip
+*.tar.gz
+
+# --------------------
+# Jupyter / Notebooks
+# --------------------
+.ipynb_checkpoints/
+*.ipynb
+
+# --------------------
+# OS Files
+# --------------------
+.DS_Store
+Thumbs.db
+
+# --------------------
+# Vercel / Render
+# --------------------
+.vercel/
+vercel.json
+
+# --------------------
+# Logs
+# --------------------
+*.log
 
